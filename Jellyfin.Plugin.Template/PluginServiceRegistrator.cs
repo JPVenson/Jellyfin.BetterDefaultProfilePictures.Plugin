@@ -18,8 +18,8 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<UiAvatarsGenerator>();
         serviceCollection.AddSingleton<DiceBearGenerator>();
 
-        // Main service – Scoped so it can safely be injected into scoped services
-        // (controllers, event consumers, scheduled tasks).
-        serviceCollection.AddScoped<ProfileImageService>();
+        // Main service – Singleton so it can be resolved from the root provider
+        // by scheduled tasks and event listeners (Jellyfin creates these from the root scope).
+        serviceCollection.AddSingleton<ProfileImageService>();
     }
 }
