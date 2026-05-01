@@ -5,6 +5,16 @@ on:
     types:
       - released
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag name (e.g. v1.0.0.0)'
+        required: true
+        type: string
+      is-unstable:
+        description: 'Mark as pre-release/unstable'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -13,8 +23,8 @@ jobs:
   call:
     uses: jellyfin/jellyfin-meta-plugins/.github/workflows/publish.yaml@master
     with:
-      version: ${{ github.event.release.tag_name }}
-      is-unstable: ${{ github.event.release.prerelease }}
+      version: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.event.release.tag_name }}
+      is-unstable: ${{ github.event_name == 'workflow_dispatch' && inputs.is-unstable == true || github.event.release.prerelease == true }}
     secrets:
       deploy-host: ${{ secrets.DEPLOY_HOST }}
       deploy-user: ${{ secrets.DEPLOY_USER }}
