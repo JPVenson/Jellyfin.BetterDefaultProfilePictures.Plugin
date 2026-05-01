@@ -2,78 +2,244 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Template</title>
+    <title>Better Default Profile Pictures</title>
 </head>
 <body>
-    <div id="TemplateConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <div id="BetterDefaultProfilePicturesConfigPage"
+         data-role="page"
+         class="page type-interior pluginConfigurationPage"
+         data-require="emby-input,emby-button,emby-select,emby-checkbox">
         <div data-role="content">
             <div class="content-primary">
-                <form id="TemplateConfigForm">
+                <form id="BetterDefaultProfilePicturesConfigForm">
+                    <h2>Profile Image Style</h2>
+
                     <div class="selectContainer">
-                        <label class="selectLabel" for="Options">Several Options</label>
-                        <select is="emby-select" id="Options" name="Options" class="emby-select-withcolor emby-select">
-                            <option id="optOneOption" value="OneOption">One Option</option>
-                            <option id="optAnotherOption" value="AnotherOption">Another Option</option>
+                        <label class="selectLabel" for="BackgroundStyle">Background Style</label>
+                        <select is="emby-select" id="BackgroundStyle" name="BackgroundStyle"
+                                class="emby-select-withcolor emby-select">
+                            <option value="Square">Square</option>
+                            <option value="Circle">Circle</option>
+                            <option value="Pixelated">Pixelated (Identicon)</option>
                         </select>
+                        <div class="fieldDescription">
+                            The shape of the coloured background behind the initials.
+                        </div>
                     </div>
+
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="NameFormat">Name Format</label>
+                        <select is="emby-select" id="NameFormat" name="NameFormat"
+                                class="emby-select-withcolor emby-select">
+                            <option value="TwoInitials">Two initials (e.g. "JD")</option>
+                            <option value="FirstInitial">First initial only (e.g. "J")</option>
+                            <option value="FullFirstName">Full first word (e.g. "John")</option>
+                        </select>
+                        <div class="fieldDescription">
+                            Controls how text is derived from the username. Ignored when a custom
+                            name template is set.
+                        </div>
+                    </div>
+
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="AnInteger">An Integer</label>
-                        <input id="AnInteger" name="AnInteger" type="number" is="emby-input" min="0" />
-                        <div class="fieldDescription">A Description</div>
+                        <label class="inputLabel inputLabelUnfocused" for="CustomNameTemplate">
+                            Custom Name Template
+                        </label>
+                        <input id="CustomNameTemplate" name="CustomNameTemplate" type="text"
+                               is="emby-input" placeholder="Leave empty to use Name Format" />
+                        <div class="fieldDescription">
+                            An optional template for the text shown on the image. Use
+                            <code>{0}</code> as a placeholder for the username (e.g.
+                            <code>{0} ✨</code>). Leave empty to use the Name Format above.
+                        </div>
                     </div>
+
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
-                            <input id="TrueFalseSetting" name="TrueFalseCheckBox" type="checkbox" is="emby-checkbox" />
-                            <span>A Checkbox</span>
+                            <input id="GenerateOnNewUser" name="GenerateOnNewUser"
+                                   type="checkbox" is="emby-checkbox" />
+                            <span>Automatically generate image for new users</span>
                         </label>
+                        <div class="fieldDescription">
+                            When enabled a profile image is created automatically whenever a new
+                            user account is created.
+                        </div>
                     </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="AString">A String</label>
-                        <input id="AString" name="AString" type="text" is="emby-input" />
-                        <div class="fieldDescription">Another Description</div>
-                    </div>
+
                     <div>
-                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                        <button is="emby-button" type="submit"
+                                class="raised button-submit block emby-button">
                             <span>Save</span>
                         </button>
                     </div>
                 </form>
+
+                <hr />
+
+                <h2>Regenerate Images</h2>
+                <p>
+                    Use the controls below to regenerate profile images. You can apply different
+                    style and name options without permanently changing the plugin settings.
+                </p>
+
+                <!-- Bulk regenerate -->
+                <div style="margin-bottom:1em;">
+                    <h3>All Users</h3>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="BulkStyle">Background Style Override</label>
+                        <select is="emby-select" id="BulkStyle" class="emby-select-withcolor emby-select">
+                            <option value="">— use plugin setting —</option>
+                            <option value="Square">Square</option>
+                            <option value="Circle">Circle</option>
+                            <option value="Pixelated">Pixelated (Identicon)</option>
+                        </select>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input id="BulkOverwrite" type="checkbox" is="emby-checkbox" />
+                            <span>Overwrite existing images</span>
+                        </label>
+                    </div>
+                    <button is="emby-button" id="btnRegenerateAll"
+                            class="raised emby-button" style="margin-top:0.5em;">
+                        <span>Regenerate All Users</span>
+                    </button>
+                    <div id="bulkResult" style="margin-top:0.5em;"></div>
+                </div>
+
+                <hr />
+
+                <!-- Per-user regenerate -->
+                <h3>Single User</h3>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="SingleUserId">User</label>
+                    <select is="emby-select" id="SingleUserId"
+                            class="emby-select-withcolor emby-select"></select>
+                </div>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="SingleDisplayName">
+                        Display Name Override
+                    </label>
+                    <input id="SingleDisplayName" type="text" is="emby-input"
+                           placeholder="Leave empty to use username" />
+                    <div class="fieldDescription">
+                        Overrides the text shown on this user's image for this one-off generation.
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="SingleStyle">Background Style Override</label>
+                    <select is="emby-select" id="SingleStyle" class="emby-select-withcolor emby-select">
+                        <option value="">— use plugin setting —</option>
+                        <option value="Square">Square</option>
+                        <option value="Circle">Circle</option>
+                        <option value="Pixelated">Pixelated (Identicon)</option>
+                    </select>
+                </div>
+                <button is="emby-button" id="btnRegenerateSingle"
+                        class="raised emby-button" style="margin-top:0.5em;">
+                    <span>Regenerate for Selected User</span>
+                </button>
+                <div id="singleResult" style="margin-top:0.5em;"></div>
             </div>
         </div>
+
         <script type="text/javascript">
-            var TemplateConfig = {
-                pluginUniqueId: 'eb5d7894-8eef-4b36-aa6f-5d124e828ce1'
+            var BetterDefaultProfilePicturesConfig = {
+                pluginUniqueId: '1879609e-a2a7-4d29-9aa3-09e0be9d23b1'
             };
 
-            document.querySelector('#TemplateConfigPage')
-                .addEventListener('pageshow', function() {
+            // ── Load & save plugin config ──────────────────────────────────────────
+            document.querySelector('#BetterDefaultProfilePicturesConfigPage')
+                .addEventListener('pageshow', function () {
                     Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
-                        document.querySelector('#Options').value = config.Options;
-                        document.querySelector('#AnInteger').value = config.AnInteger;
-                        document.querySelector('#TrueFalseSetting').checked = config.TrueFalseSetting;
-                        document.querySelector('#AString').value = config.AString;
-                        Dashboard.hideLoadingMsg();
+
+                    ApiClient.getPluginConfiguration(BetterDefaultProfilePicturesConfig.pluginUniqueId)
+                        .then(function (config) {
+                            document.querySelector('#BackgroundStyle').value = config.BackgroundStyle;
+                            document.querySelector('#NameFormat').value = config.NameFormat;
+                            document.querySelector('#CustomNameTemplate').value = config.CustomNameTemplate || '';
+                            document.querySelector('#GenerateOnNewUser').checked = config.GenerateOnNewUser;
+                            Dashboard.hideLoadingMsg();
+                        });
+
+                    // Populate user list
+                    ApiClient.getUsers().then(function (users) {
+                        var sel = document.querySelector('#SingleUserId');
+                        sel.innerHTML = '';
+                        users.forEach(function (u) {
+                            var opt = document.createElement('option');
+                            opt.value = u.Id;
+                            opt.textContent = u.Name;
+                            sel.appendChild(opt);
+                        });
                     });
                 });
 
-            document.querySelector('#TemplateConfigForm')
-                .addEventListener('submit', function(e) {
-                Dashboard.showLoadingMsg();
-                ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
-                    config.Options = document.querySelector('#Options').value;
-                    config.AnInteger = document.querySelector('#AnInteger').value;
-                    config.TrueFalseSetting = document.querySelector('#TrueFalseSetting').checked;
-                    config.AString = document.querySelector('#AString').value;
-                    ApiClient.updatePluginConfiguration(TemplateConfig.pluginUniqueId, config).then(function (result) {
-                        Dashboard.processPluginConfigurationUpdateResult(result);
-                    });
+            document.querySelector('#BetterDefaultProfilePicturesConfigForm')
+                .addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(BetterDefaultProfilePicturesConfig.pluginUniqueId)
+                        .then(function (config) {
+                            config.BackgroundStyle = document.querySelector('#BackgroundStyle').value;
+                            config.NameFormat = document.querySelector('#NameFormat').value;
+                            config.CustomNameTemplate = document.querySelector('#CustomNameTemplate').value;
+                            config.GenerateOnNewUser = document.querySelector('#GenerateOnNewUser').checked;
+                            ApiClient.updatePluginConfiguration(
+                                BetterDefaultProfilePicturesConfig.pluginUniqueId, config)
+                                .then(function (result) {
+                                    Dashboard.processPluginConfigurationUpdateResult(result);
+                                });
+                        });
+                    return false;
                 });
 
-                e.preventDefault();
-                return false;
+            // ── Bulk regenerate ───────────────────────────────────────────────────
+            document.querySelector('#btnRegenerateAll').addEventListener('click', function () {
+                var styleVal = document.querySelector('#BulkStyle').value;
+                var overwrite = document.querySelector('#BulkOverwrite').checked;
+                var body = { Overwrite: overwrite };
+                if (styleVal) body.BackgroundStyleOverride = styleVal;
+
+                document.querySelector('#bulkResult').textContent = 'Working…';
+                ApiClient.ajax({
+                    type: 'POST',
+                    url: ApiClient.getUrl('Plugins/BetterDefaultProfilePictures/GenerateAll'),
+                    data: JSON.stringify(body),
+                    contentType: 'application/json'
+                }).then(function (result) {
+                    var ids = result || [];
+                    document.querySelector('#bulkResult').textContent =
+                        'Done – regenerated ' + ids.length + ' image(s).';
+                }).catch(function (err) {
+                    document.querySelector('#bulkResult').textContent = 'Error: ' + (err.statusText || err);
+                });
+            });
+
+            // ── Single-user regenerate ────────────────────────────────────────────
+            document.querySelector('#btnRegenerateSingle').addEventListener('click', function () {
+                var userId = document.querySelector('#SingleUserId').value;
+                if (!userId) return;
+                var styleVal = document.querySelector('#SingleStyle').value;
+                var displayName = document.querySelector('#SingleDisplayName').value;
+                var body = {};
+                if (displayName) body.DisplayNameOverride = displayName;
+                if (styleVal) body.BackgroundStyleOverride = styleVal;
+
+                document.querySelector('#singleResult').textContent = 'Working…';
+                ApiClient.ajax({
+                    type: 'POST',
+                    url: ApiClient.getUrl('Plugins/BetterDefaultProfilePictures/Generate/' + userId),
+                    data: JSON.stringify(body),
+                    contentType: 'application/json'
+                }).then(function () {
+                    document.querySelector('#singleResult').textContent = 'Done – image regenerated.';
+                }).catch(function (err) {
+                    document.querySelector('#singleResult').textContent = 'Error: ' + (err.statusText || err);
+                });
             });
         </script>
     </div>
 </body>
 </html>
+

@@ -1,0 +1,147 @@
+name: '🚀 Build and Release Plugin'
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build-and-release:
+    name: Build, Package, and Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            # Strip leading 'v' from the tag (v1.0.0.0 → 1.0.0.0)
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Jellyfin.Plugin.Template.sln
+
+      - name: Publish in Release mode
+        run: |
+          dotnet publish Jellyfin.Plugin.Template/Jellyfin.Plugin.Template.csproj \
+            --configuration Release \
+            --no-restore \
+            --output artifacts \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -p:AssemblyVersion=${{ steps.version.outputs.version }} \
+            -p:FileVersion=${{ steps.version.outputs.version }}
+
+      - name: Create plugin ZIP
+        id: package
+        run: |
+          ARTIFACT_DIR="artifacts"
+
+          ZIP_NAME="jellyfin-plugin-betterdefaultprofilepictures_${{ steps.version.outputs.version }}.zip"
+          (cd "${ARTIFACT_DIR}" && zip -r "../${ZIP_NAME}" .)
+
+          echo "zip_name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "zip_path=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+
+          # Compute MD5 checksum (used in Jellyfin plugin manifest)
+          MD5=$(md5sum "${ZIP_NAME}" | awk '{print $1}')
+          echo "checksum=${MD5}" >> "$GITHUB_OUTPUT"
+
+          FILE_SIZE=$(stat -c%s "${ZIP_NAME}")
+          echo "file_size=${FILE_SIZE}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.version.outputs.tag }}
+          name: 'v${{ steps.version.outputs.version }}'
+          generateReleaseNotes: true
+          artifacts: ${{ steps.package.outputs.zip_path }}
+          artifactContentType: application/zip
+          allowUpdates: true
+
+      - name: Update manifest.json
+        run: |
+          python3 - <<'PYEOF'
+import json, os
+from datetime import datetime, timezone
+
+version    = os.environ["VERSION"]
+checksum   = os.environ["CHECKSUM"]
+zip_name   = os.environ["ZIP_NAME"]
+timestamp  = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+dl_url     = os.environ["DOWNLOAD_URL"]
+repository = os.environ["GITHUB_REPOSITORY"]
+
+manifest_path = "manifest.json"
+with open(manifest_path) as f:
+    manifest = json.load(f)
+
+new_version = {
+    "version": version,
+    "changelog": f"See https://github.com/{repository}/releases/tag/v{version}",
+    "targetAbi": "10.9.0.0",
+    "sourceUrl": dl_url,
+    "checksum": checksum,
+    "timestamp": timestamp,
+    "filename": zip_name
+}
+
+# Prepend new version (most recent first) and de-duplicate
+existing = manifest[0].get("versions", [])
+existing = [v for v in existing if v["version"] != version]
+manifest[0]["versions"] = [new_version] + existing
+
+with open(manifest_path, "w") as f:
+    json.dump(manifest, f, indent=2)
+    f.write("\n")
+
+print(f"manifest.json updated with version {version}")
+PYEOF
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          CHECKSUM: ${{ steps.package.outputs.checksum }}
+          ZIP_NAME: ${{ steps.package.outputs.zip_name }}
+          DOWNLOAD_URL: https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/${{ steps.package.outputs.zip_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Create Pull Request to update manifest
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: 'manifest/update-${{ steps.version.outputs.version }}'
+          base: master
+          commit-message: 'manifest: add version ${{ steps.version.outputs.version }}'
+          title: '[manifest] Add version ${{ steps.version.outputs.version }}'
+          body: |
+            Automated manifest update for release **v${{ steps.version.outputs.version }}**.
+
+            - Checksum (MD5): `${{ steps.package.outputs.checksum }}`
+            - Download: ${{ steps.package.outputs.zip_name }}
+          labels: manifest
+          delete-branch: true

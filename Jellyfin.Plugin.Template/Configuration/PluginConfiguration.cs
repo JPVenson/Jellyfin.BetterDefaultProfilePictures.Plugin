@@ -1,25 +1,51 @@
 using MediaBrowser.Model.Plugins;
 
-namespace Jellyfin.Plugin.Template.Configuration;
+namespace Jellyfin.Plugin.BetterDefaultProfilePictures.Configuration;
 
 /// <summary>
-/// The configuration options.
+/// The background style for generated profile images.
 /// </summary>
-public enum SomeOptions
+public enum BackgroundStyle
 {
     /// <summary>
-    /// Option one.
+    /// A solid square background with initials centered on it.
     /// </summary>
-    OneOption,
+    Square,
 
     /// <summary>
-    /// Second option.
+    /// A solid circle background with initials centered on it.
     /// </summary>
-    AnotherOption
+    Circle,
+
+    /// <summary>
+    /// A pixelated / identicon-style pattern background with initials overlaid.
+    /// </summary>
+    Pixelated
 }
 
 /// <summary>
-/// Plugin configuration.
+/// Controls how the display text on the profile image is derived.
+/// </summary>
+public enum NameFormat
+{
+    /// <summary>
+    /// Show two initials: first letter of first word + first letter of second word (or second character of a single word).
+    /// </summary>
+    TwoInitials,
+
+    /// <summary>
+    /// Show only the first initial.
+    /// </summary>
+    FirstInitial,
+
+    /// <summary>
+    /// Show the full first word of the display name.
+    /// </summary>
+    FullFirstName
+}
+
+/// <summary>
+/// Plugin configuration for Better Default Profile Pictures.
 /// </summary>
 public class PluginConfiguration : BasePluginConfiguration
 {
@@ -28,30 +54,33 @@ public class PluginConfiguration : BasePluginConfiguration
     /// </summary>
     public PluginConfiguration()
     {
-        // set default options here
-        Options = SomeOptions.AnotherOption;
-        TrueFalseSetting = true;
-        AnInteger = 2;
-        AString = "string";
+        BackgroundStyle = BackgroundStyle.Circle;
+        NameFormat = NameFormat.TwoInitials;
+        CustomNameTemplate = string.Empty;
+        GenerateOnNewUser = true;
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether some true or false setting is enabled..
+    /// Gets or sets the background style used when generating profile images.
     /// </summary>
-    public bool TrueFalseSetting { get; set; }
+    public BackgroundStyle BackgroundStyle { get; set; }
 
     /// <summary>
-    /// Gets or sets an integer setting.
+    /// Gets or sets the format used to derive the text displayed on the profile image.
+    /// When <see cref="NameFormat"/> is set this controls the auto-derived text.
     /// </summary>
-    public int AnInteger { get; set; }
+    public NameFormat NameFormat { get; set; }
 
     /// <summary>
-    /// Gets or sets a string setting.
+    /// Gets or sets an optional custom display-name template that overrides the
+    /// <see cref="NameFormat"/> selection. Use <c>{0}</c> as a placeholder for the
+    /// username.  Leave empty to use the automatic format.
     /// </summary>
-    public string AString { get; set; }
+    public string CustomNameTemplate { get; set; }
 
     /// <summary>
-    /// Gets or sets an enum option.
+    /// Gets or sets a value indicating whether a profile image should be
+    /// automatically generated when a new user account is created.
     /// </summary>
-    public SomeOptions Options { get; set; }
+    public bool GenerateOnNewUser { get; set; }
 }
