@@ -67,6 +67,7 @@ jobs:
           ARTIFACT_DIR="artifacts"
 
           ZIP_NAME="jellyfin-plugin-betterdefaultprofilepictures_${{ steps.version.outputs.version }}.zip"
+          cp logo.svg "${ARTIFACT_DIR}/logo.svg"
           (cd "${ARTIFACT_DIR}" && zip -r "../${ZIP_NAME}" .)
 
           echo "zip_name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
