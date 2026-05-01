@@ -1,21 +1,29 @@
 [
-  {
-    "category": "General",
-    "guid": "1879609e-a2a7-4d29-9aa3-09e0be9d23b1",
-    "name": "Better Default Profile Pictures",
-    "description": "Automatically generates a default profile picture for every Jellyfin user that does not have a custom profile image set. Supports three background styles (Square, Circle, Pixelated), configurable name formats, and an admin UI to regenerate images on demand.",
-    "overview": "Generates colourful initials-based profile pictures for users that do not have one.",
-    "owner": "JPVenson",
-    "imageUrl": "https://raw.githubusercontent.com/JPVenson/Jellyfin.BetterDefaultProfilePictures.Plugin/refs/heads/master/logo.svg",
-    "versions": [
-         {
-            "version": "0.1",
-            "changelog": "Test Version",
-            "targetAbi": "10.11.0.0",
-            "sourceUrl": "https://github.com/JPVenson/Jellyfin.BetterDefaultProfilePictures.Plugin/releases/download/v0.1/better-default-profile-pictures_1.0.0.0.zip",
-            "checksum": "bc67980190d7b7cf571deb0c24a97be1",
-            "timestamp": "2026-05-01T19:15:00"
-        }
-    ]
-  }
+    {
+        "category": "General",
+        "guid": "1879609e-a2a7-4d29-9aa3-09e0be9d23b1",
+        "name": "Better Default Profile Pictures",
+        "description": "Automatically generates a default profile picture for every Jellyfin user that does not have a custom profile image set. Supports three background styles (Square, Circle, Pixelated), configurable name formats, and an admin UI to regenerate images on demand.",
+        "overview": "Generates colourful initials-based profile pictures for users that do not have one.",
+        "owner": "JPVenson",
+        "imageUrl": "https://raw.githubusercontent.com/JPVenson/Jellyfin.BetterDefaultProfilePictures.Plugin/refs/heads/master/logo.svg",
+        "versions": [
+            {
+                "version": "0.1",
+                "changelog": "Test Version",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/JPVenson/Jellyfin.BetterDefaultProfilePictures.Plugin/releases/download/v0.1/better-default-profile-pictures_1.0.0.0.zip",
+                "checksum": "bc67980190d7b7cf571deb0c24a97be1",
+                "timestamp": "2026-05-01T19:15:00"
+            },
+            {
+                "version": "1.0.0.0",
+                "changelog": "First official release Version",
+                "targetAbi": "10.11.0.0",
+                "sourceUrl": "https://github.com/JPVenson/Jellyfin.BetterDefaultProfilePictures.Plugin/releases/download/v1.0/better-default-profile-pictures_1.0.0.0.zip",
+                "checksum": "5e00a891f9ef1452273a99da6e48139f",
+                "timestamp": "2026-05-01T22:00:00"
+            }
+        ]
+    }
 ]
