@@ -6,26 +6,70 @@ on:
       - released
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release tag name (e.g. v1.0.0.0)'
+      tag:
+        description: 'Release tag to publish (e.g. v1.0.0.0)'
         required: true
         type: string
-      is-unstable:
-        description: 'Mark as pre-release/unstable'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
 
 jobs:
+  # Triggered by a release event — reusable workflow has access to upload_url via github.event
   call:
+    if: github.event_name == 'release'
     uses: jellyfin/jellyfin-meta-plugins/.github/workflows/publish.yaml@master
     with:
-      version: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.event.release.tag_name }}
-      is-unstable: ${{ github.event_name == 'workflow_dispatch' && inputs.is-unstable == true || github.event.release.prerelease == true }}
+      version: ${{ github.event.release.tag_name }}
+      is-unstable: ${{ github.event.release.prerelease == true }}
     secrets:
       deploy-host: ${{ secrets.DEPLOY_HOST }}
       deploy-user: ${{ secrets.DEPLOY_USER }}
       deploy-key: ${{ secrets.DEPLOY_KEY }}
+
+  # Triggered manually — builds and uploads assets to an existing release
+  manual-publish:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Build Jellyfin Plugin
+        uses: oddstr13/jellyfin-plugin-repository-manager@9497a0a499416cc572ed2e07a391d9f943a37b4d # v1.1.1
+        id: jprm
+        with:
+          dotnet-target: 'net9.0'
+
+      - name: Prepare checksums
+        id: prep
+        run: |
+          artifact="${{ steps.jprm.outputs.artifact }}"
+          artifact_dir="$(dirname "$artifact")"
+          artifact_name="$(basename "$artifact")"
+          cd "$artifact_dir"
+          md5sum "$artifact_name" >> "${artifact_name%.*}.md5"
+          sha256sum "$artifact_name" >> "${artifact_name%.*}.sha256"
+          echo "artifact_dir=${artifact_dir}" >> "$GITHUB_OUTPUT"
+
+      - name: Get release upload URL
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          upload_url=$(gh api "repos/${{ github.repository }}/releases/tags/${{ inputs.tag }}" --jq '.upload_url')
+          echo "upload_url=${upload_url}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload release assets
+        uses: shogo82148/actions-upload-release-asset@8f6863c6c894ba46f9e676ef5cccec4752723c1e # v1.9.2
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: ${{ steps.prep.outputs.artifact_dir }}/*
+          overwrite: true
