@@ -1,0 +1,11 @@
+[
+  {
+    "category": "General",
+    "guid": "1879609e-a2a7-4d29-9aa3-09e0be9d23b1",
+    "name": "Better Default Profile Pictures",
+    "description": "Automatically generates a default profile picture for every Jellyfin user that does not have a custom profile image set. Supports three background styles (Square, Circle, Pixelated), configurable name formats, and an admin UI to regenerate images on demand.",
+    "overview": "Generates colourful initials-based profile pictures for users that do not have one.",
+    "owner": "JPVenson",
+    "versions": []
+  }
+]
