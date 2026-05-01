@@ -13,7 +13,7 @@
             "changelog": "Test Version",
             "targetAbi": "10.11.0.0",
             "sourceUrl": "https://github.com/JPVenson/Jellyfin.BetterDefaultProfilePictures.Plugin/releases/download/v0.1/better-default-profile-pictures_1.0.0.0.zip",
-            "checksum": "9d13109a69137981089ab2b6ad6c6f7e",
+            "checksum": "9bb1a47a116a9200ff51e17c3e06dbba",
             "timestamp": "2026-05-01T19:15:00"
         }
     ]
