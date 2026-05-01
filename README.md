@@ -40,6 +40,8 @@ You can also provide a custom template — use `{0}` as a placeholder for the fu
 
 Install through the Jellyfin plugin catalogue, or drop the DLL into your plugins directory and restart.
 
+repository url: https://raw.githubusercontent.com/JPVenson/Jellyfin.BetterDefaultProfilePictures.Plugin/refs/heads/master/manifest.json
+
 Once installed, open **Dashboard → Plugins → Better Default Profile Pictures** to pick a provider and tweak the settings.
 
 ## Configuration
