@@ -104,14 +104,14 @@ public sealed class SkiaProfileImageGenerator : IProfileImageGenerator
         var bitmap = new SKBitmap(ImageSize, ImageSize);
         using var canvas = new SKCanvas(bitmap);
 
-        canvas.Clear(LightenColor(bgColor, -DarkenAmount)); // darken as bg
+        canvas.Clear(AdjustColorBrightness(bgColor, -DarkenAmount)); // negative amount darkens the bg color
 
         var hash = new byte[16];
         userId.TryWriteBytes(hash);
 
         var cellSize = ImageSize / PixelCellCount;
         var halfCells = PixelCellCount / 2;
-        var accentColor = LightenColor(bgColor, LightenAmount);
+        var accentColor = AdjustColorBrightness(bgColor, LightenAmount);
 
         using var cellPaint = new SKPaint { Color = accentColor };
         for (int row = 0; row < PixelCellCount; row++)
@@ -194,7 +194,10 @@ public sealed class SkiaProfileImageGenerator : IProfileImageGenerator
         return ColorPalette[hash % ColorPalette.Length];
     }
 
-    private static SKColor LightenColor(SKColor color, float amount)
+    /// <summary>
+    /// Adjusts color brightness by <paramref name="amount"/>. Positive values lighten, negative darken.
+    /// </summary>
+    private static SKColor AdjustColorBrightness(SKColor color, float amount)
     {
         return new SKColor(
             (byte)Math.Clamp(color.Red + (int)(255 * amount), 0, 255),
