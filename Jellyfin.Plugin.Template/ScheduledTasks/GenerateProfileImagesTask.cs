@@ -50,7 +50,7 @@ public class GenerateProfileImagesTask : IScheduledTask
     /// <inheritdoc />
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
-        var userList = new List<Jellyfin.Data.Entities.User>(_userManager.Users);
+        var userList = new List<Jellyfin.Database.Implementations.Entities.User>(_userManager.Users);
         var total = userList.Count;
         var processed = 0;
 
@@ -87,7 +87,7 @@ public class GenerateProfileImagesTask : IScheduledTask
         // Run once on startup
         return
         [
-            new TaskTriggerInfo { Type = TaskTriggerInfo.TriggerStartup }
+            new TaskTriggerInfo { Type = MediaBrowser.Model.Tasks.TaskTriggerInfoType.StartupTrigger }
         ];
     }
 }

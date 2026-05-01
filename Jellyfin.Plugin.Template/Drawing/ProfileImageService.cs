@@ -2,12 +2,12 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.BetterDefaultProfilePictures.Configuration;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Library;
 using Microsoft.Extensions.Logging;
 using IOPath = System.IO.Path;
-using JellyfinImageInfo = Jellyfin.Data.Entities.ImageInfo;
 
 namespace Jellyfin.Plugin.BetterDefaultProfilePictures.Drawing;
 
@@ -60,7 +60,7 @@ public class ProfileImageService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public async Task GenerateAndSaveProfileImageAsync(
-        Jellyfin.Data.Entities.User user,
+        User user,
         string? displayNameOverride = null,
         BackgroundStyle? backgroundStyleOverride = null,
         CancellationToken cancellationToken = default)
@@ -122,7 +122,7 @@ public class ProfileImageService
             await imageStream.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
         }
 
-        user.ProfileImage = new JellyfinImageInfo(imagePath);
+        user.ProfileImage = new Jellyfin.Database.Implementations.Entities.ImageInfo(imagePath);
         await _userManager.UpdateUserAsync(user).ConfigureAwait(false);
 
         _logger.LogInformation(
