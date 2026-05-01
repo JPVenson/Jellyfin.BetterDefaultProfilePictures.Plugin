@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.BetterDefaultProfilePictures.Drawing;
-using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
@@ -17,22 +16,22 @@ namespace Jellyfin.Plugin.BetterDefaultProfilePictures.ScheduledTasks;
 public class GenerateProfileImagesTask : IScheduledTask
 {
     private readonly IUserManager _userManager;
-    private readonly IServerConfigurationManager _serverConfigurationManager;
+    private readonly ProfileImageService _profileImageService;
     private readonly ILogger<GenerateProfileImagesTask> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GenerateProfileImagesTask"/> class.
     /// </summary>
     /// <param name="userManager">The user manager.</param>
-    /// <param name="serverConfigurationManager">The server configuration manager.</param>
+    /// <param name="profileImageService">The profile image service.</param>
     /// <param name="logger">The logger.</param>
     public GenerateProfileImagesTask(
         IUserManager userManager,
-        IServerConfigurationManager serverConfigurationManager,
+        ProfileImageService profileImageService,
         ILogger<GenerateProfileImagesTask> logger)
     {
         _userManager = userManager;
-        _serverConfigurationManager = serverConfigurationManager;
+        _profileImageService = profileImageService;
         _logger = logger;
     }
 
@@ -51,13 +50,7 @@ public class GenerateProfileImagesTask : IScheduledTask
     /// <inheritdoc />
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
-        var service = new ProfileImageService(
-            _serverConfigurationManager,
-            _userManager,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileImageService>.Instance);
-
-        var users = _userManager.Users;
-        var userList = new List<Jellyfin.Data.Entities.User>(users);
+        var userList = new List<Jellyfin.Data.Entities.User>(_userManager.Users);
         var total = userList.Count;
         var processed = 0;
 
@@ -75,7 +68,7 @@ public class GenerateProfileImagesTask : IScheduledTask
 
             try
             {
-                await service.GenerateAndSaveProfileImageAsync(user, cancellationToken: cancellationToken)
+                await _profileImageService.GenerateAndSaveProfileImageAsync(user, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
             }
             catch (Exception ex)

@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.BetterDefaultProfilePictures.Drawing;
-using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -22,22 +21,22 @@ namespace Jellyfin.Plugin.BetterDefaultProfilePictures.Api;
 public class ProfileImagesController : ControllerBase
 {
     private readonly IUserManager _userManager;
-    private readonly IServerConfigurationManager _serverConfigurationManager;
+    private readonly ProfileImageService _profileImageService;
     private readonly ILogger<ProfileImagesController> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProfileImagesController"/> class.
     /// </summary>
     /// <param name="userManager">The user manager.</param>
-    /// <param name="serverConfigurationManager">The server configuration manager.</param>
+    /// <param name="profileImageService">The profile image service.</param>
     /// <param name="logger">The logger.</param>
     public ProfileImagesController(
         IUserManager userManager,
-        IServerConfigurationManager serverConfigurationManager,
+        ProfileImageService profileImageService,
         ILogger<ProfileImagesController> logger)
     {
         _userManager = userManager;
-        _serverConfigurationManager = serverConfigurationManager;
+        _profileImageService = profileImageService;
         _logger = logger;
     }
 
@@ -62,8 +61,7 @@ public class ProfileImagesController : ControllerBase
             return NotFound();
         }
 
-        var service = CreateService();
-        await service.GenerateAndSaveProfileImageAsync(
+        await _profileImageService.GenerateAndSaveProfileImageAsync(
             user,
             request?.DisplayNameOverride,
             request?.BackgroundStyleOverride,
@@ -84,7 +82,6 @@ public class ProfileImagesController : ControllerBase
         [FromBody] GenerateAllImagesRequest? request,
         CancellationToken cancellationToken)
     {
-        var service = CreateService();
         var processed = new List<Guid>();
 
         foreach (var user in _userManager.Users)
@@ -98,7 +95,7 @@ public class ProfileImagesController : ControllerBase
 
             try
             {
-                await service.GenerateAndSaveProfileImageAsync(
+                await _profileImageService.GenerateAndSaveProfileImageAsync(
                     user,
                     backgroundStyleOverride: request?.BackgroundStyleOverride,
                     cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -112,10 +109,4 @@ public class ProfileImagesController : ControllerBase
 
         return Ok(processed);
     }
-
-    private ProfileImageService CreateService()
-        => new ProfileImageService(
-            _serverConfigurationManager,
-            _userManager,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileImageService>.Instance);
 }

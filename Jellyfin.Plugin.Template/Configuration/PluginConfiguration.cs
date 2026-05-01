@@ -3,7 +3,7 @@ using MediaBrowser.Model.Plugins;
 namespace Jellyfin.Plugin.BetterDefaultProfilePictures.Configuration;
 
 /// <summary>
-/// The background style for generated profile images.
+/// The background style for locally generated profile images.
 /// </summary>
 public enum BackgroundStyle
 {
@@ -45,6 +45,29 @@ public enum NameFormat
 }
 
 /// <summary>
+/// Selects which image generation provider is used.
+/// </summary>
+public enum GenerationProvider
+{
+    /// <summary>
+    /// Images are generated locally using SkiaSharp.
+    /// </summary>
+    Local,
+
+    /// <summary>
+    /// Images are fetched from the free <c>ui-avatars.com</c> web service.
+    /// No API key is required. License: free for public &amp; commercial use.
+    /// </summary>
+    UiAvatars,
+
+    /// <summary>
+    /// Images are fetched from the free <c>api.dicebear.com</c> web service.
+    /// License: MIT (API is free to use).
+    /// </summary>
+    DiceBear
+}
+
+/// <summary>
 /// Plugin configuration for Better Default Profile Pictures.
 /// </summary>
 public class PluginConfiguration : BasePluginConfiguration
@@ -54,14 +77,22 @@ public class PluginConfiguration : BasePluginConfiguration
     /// </summary>
     public PluginConfiguration()
     {
+        GenerationProvider = GenerationProvider.Local;
         BackgroundStyle = BackgroundStyle.Circle;
         NameFormat = NameFormat.TwoInitials;
         CustomNameTemplate = string.Empty;
         GenerateOnNewUser = true;
+        DiceBearStyle = "initials";
     }
 
     /// <summary>
-    /// Gets or sets the background style used when generating profile images.
+    /// Gets or sets the provider used to generate profile images.
+    /// </summary>
+    public GenerationProvider GenerationProvider { get; set; }
+
+    /// <summary>
+    /// Gets or sets the background style used when generating profile images locally.
+    /// Only used when <see cref="GenerationProvider"/> is <see cref="GenerationProvider.Local"/>.
     /// </summary>
     public BackgroundStyle BackgroundStyle { get; set; }
 
@@ -83,4 +114,12 @@ public class PluginConfiguration : BasePluginConfiguration
     /// automatically generated when a new user account is created.
     /// </summary>
     public bool GenerateOnNewUser { get; set; }
+
+    /// <summary>
+    /// Gets or sets the DiceBear avatar style (e.g. <c>initials</c>, <c>bottts</c>,
+    /// <c>avataaars</c>, <c>pixel-art</c>). Only used when
+    /// <see cref="GenerationProvider"/> is <see cref="GenerationProvider.DiceBear"/>.
+    /// Full list at https://www.dicebear.com/styles/.
+    /// </summary>
+    public string DiceBearStyle { get; set; }
 }

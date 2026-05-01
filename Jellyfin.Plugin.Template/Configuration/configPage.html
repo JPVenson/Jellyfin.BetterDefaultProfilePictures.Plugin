@@ -12,20 +12,64 @@
         <div data-role="content">
             <div class="content-primary">
                 <form id="BetterDefaultProfilePicturesConfigForm">
-                    <h2>Profile Image Style</h2>
+                    <h2>Image Generation</h2>
 
                     <div class="selectContainer">
-                        <label class="selectLabel" for="BackgroundStyle">Background Style</label>
-                        <select is="emby-select" id="BackgroundStyle" name="BackgroundStyle"
+                        <label class="selectLabel" for="GenerationProvider">Generation Provider</label>
+                        <select is="emby-select" id="GenerationProvider" name="GenerationProvider"
                                 class="emby-select-withcolor emby-select">
-                            <option value="Square">Square</option>
-                            <option value="Circle">Circle</option>
-                            <option value="Pixelated">Pixelated (Identicon)</option>
+                            <option value="Local">Local (SkiaSharp – no internet required)</option>
+                            <option value="UiAvatars">UI Avatars (ui-avatars.com – free, no key)</option>
+                            <option value="DiceBear">DiceBear (api.dicebear.com – free, MIT)</option>
                         </select>
                         <div class="fieldDescription">
-                            The shape of the coloured background behind the initials.
+                            Select how profile images are generated.
+                            <strong>Local</strong> renders initials offline using SkiaSharp.
+                            <strong>UI Avatars</strong> and <strong>DiceBear</strong> fetch images
+                            from free public APIs (requires internet access from the server).
                         </div>
                     </div>
+
+                    <div id="localOptions">
+                        <h2>Local Style Options</h2>
+
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="BackgroundStyle">Background Style</label>
+                            <select is="emby-select" id="BackgroundStyle" name="BackgroundStyle"
+                                    class="emby-select-withcolor emby-select">
+                                <option value="Square">Square</option>
+                                <option value="Circle">Circle</option>
+                                <option value="Pixelated">Pixelated (Identicon)</option>
+                            </select>
+                            <div class="fieldDescription">
+                                The shape of the coloured background behind the initials.
+                                Only used when the provider is set to <em>Local</em>.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="diceBearOptions" style="display:none;">
+                        <h2>DiceBear Options</h2>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="DiceBearStyle">
+                                DiceBear Style
+                            </label>
+                            <input id="DiceBearStyle" name="DiceBearStyle" type="text"
+                                   is="emby-input" placeholder="initials" />
+                            <div class="fieldDescription">
+                                The DiceBear avatar style to use (e.g.
+                                <code>initials</code>, <code>bottts</code>,
+                                <code>avataaars</code>, <code>pixel-art</code>,
+                                <code>identicon</code>).
+                                Full list at
+                                <a href="https://www.dicebear.com/styles/" target="_blank"
+                                   rel="noopener noreferrer">dicebear.com/styles</a>.
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2>Name Format</h2>
 
                     <div class="selectContainer">
                         <label class="selectLabel" for="NameFormat">Name Format</label>
@@ -148,6 +192,15 @@
                 pluginUniqueId: '1879609e-a2a7-4d29-9aa3-09e0be9d23b1'
             };
 
+            // Show/hide provider-specific option panels
+            function updateProviderVisibility() {
+                var provider = document.querySelector('#GenerationProvider').value;
+                document.querySelector('#localOptions').style.display =
+                    provider === 'Local' ? '' : 'none';
+                document.querySelector('#diceBearOptions').style.display =
+                    provider === 'DiceBear' ? '' : 'none';
+            }
+
             // ── Load & save plugin config ──────────────────────────────────────────
             document.querySelector('#BetterDefaultProfilePicturesConfigPage')
                 .addEventListener('pageshow', function () {
@@ -155,10 +208,17 @@
 
                     ApiClient.getPluginConfiguration(BetterDefaultProfilePicturesConfig.pluginUniqueId)
                         .then(function (config) {
+                            document.querySelector('#GenerationProvider').value =
+                                config.GenerationProvider || 'Local';
                             document.querySelector('#BackgroundStyle').value = config.BackgroundStyle;
+                            document.querySelector('#DiceBearStyle').value =
+                                config.DiceBearStyle || 'initials';
                             document.querySelector('#NameFormat').value = config.NameFormat;
-                            document.querySelector('#CustomNameTemplate').value = config.CustomNameTemplate || '';
-                            document.querySelector('#GenerateOnNewUser').checked = config.GenerateOnNewUser;
+                            document.querySelector('#CustomNameTemplate').value =
+                                config.CustomNameTemplate || '';
+                            document.querySelector('#GenerateOnNewUser').checked =
+                                config.GenerateOnNewUser;
+                            updateProviderVisibility();
                             Dashboard.hideLoadingMsg();
                         });
 
@@ -175,16 +235,26 @@
                     });
                 });
 
+            document.querySelector('#GenerationProvider')
+                .addEventListener('change', updateProviderVisibility);
+
             document.querySelector('#BetterDefaultProfilePicturesConfigForm')
                 .addEventListener('submit', function (e) {
                     e.preventDefault();
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(BetterDefaultProfilePicturesConfig.pluginUniqueId)
                         .then(function (config) {
-                            config.BackgroundStyle = document.querySelector('#BackgroundStyle').value;
+                            config.GenerationProvider =
+                                document.querySelector('#GenerationProvider').value;
+                            config.BackgroundStyle =
+                                document.querySelector('#BackgroundStyle').value;
+                            config.DiceBearStyle =
+                                document.querySelector('#DiceBearStyle').value || 'initials';
                             config.NameFormat = document.querySelector('#NameFormat').value;
-                            config.CustomNameTemplate = document.querySelector('#CustomNameTemplate').value;
-                            config.GenerateOnNewUser = document.querySelector('#GenerateOnNewUser').checked;
+                            config.CustomNameTemplate =
+                                document.querySelector('#CustomNameTemplate').value;
+                            config.GenerateOnNewUser =
+                                document.querySelector('#GenerateOnNewUser').checked;
                             ApiClient.updatePluginConfiguration(
                                 BetterDefaultProfilePicturesConfig.pluginUniqueId, config)
                                 .then(function (result) {
@@ -201,7 +271,7 @@
                 var body = { Overwrite: overwrite };
                 if (styleVal) body.BackgroundStyleOverride = styleVal;
 
-                document.querySelector('#bulkResult').textContent = 'Working…';
+                document.querySelector('#bulkResult').textContent = 'Working\u2026';
                 ApiClient.ajax({
                     type: 'POST',
                     url: ApiClient.getUrl('Plugins/BetterDefaultProfilePictures/GenerateAll'),
@@ -210,9 +280,10 @@
                 }).then(function (result) {
                     var ids = result || [];
                     document.querySelector('#bulkResult').textContent =
-                        'Done – regenerated ' + ids.length + ' image(s).';
+                        'Done \u2013 regenerated ' + ids.length + ' image(s).';
                 }).catch(function (err) {
-                    document.querySelector('#bulkResult').textContent = 'Error: ' + (err.statusText || err);
+                    document.querySelector('#bulkResult').textContent =
+                        'Error: ' + (err.statusText || err);
                 });
             });
 
@@ -226,16 +297,19 @@
                 if (displayName) body.DisplayNameOverride = displayName;
                 if (styleVal) body.BackgroundStyleOverride = styleVal;
 
-                document.querySelector('#singleResult').textContent = 'Working…';
+                document.querySelector('#singleResult').textContent = 'Working\u2026';
                 ApiClient.ajax({
                     type: 'POST',
-                    url: ApiClient.getUrl('Plugins/BetterDefaultProfilePictures/Generate/' + userId),
+                    url: ApiClient.getUrl(
+                        'Plugins/BetterDefaultProfilePictures/Generate/' + userId),
                     data: JSON.stringify(body),
                     contentType: 'application/json'
                 }).then(function () {
-                    document.querySelector('#singleResult').textContent = 'Done – image regenerated.';
+                    document.querySelector('#singleResult').textContent =
+                        'Done \u2013 image regenerated.';
                 }).catch(function (err) {
-                    document.querySelector('#singleResult').textContent = 'Error: ' + (err.statusText || err);
+                    document.querySelector('#singleResult').textContent =
+                        'Error: ' + (err.statusText || err);
                 });
             });
         </script>

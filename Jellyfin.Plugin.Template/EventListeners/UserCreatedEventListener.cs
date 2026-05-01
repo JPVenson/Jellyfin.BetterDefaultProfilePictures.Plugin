@@ -2,9 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Jellyfin.Data.Events.Users;
 using Jellyfin.Plugin.BetterDefaultProfilePictures.Drawing;
-using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Events;
-using MediaBrowser.Controller.Library;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.BetterDefaultProfilePictures.EventListeners;
@@ -15,23 +13,19 @@ namespace Jellyfin.Plugin.BetterDefaultProfilePictures.EventListeners;
 /// </summary>
 public class UserCreatedEventListener : IEventConsumer<UserCreatedEventArgs>
 {
-    private readonly IUserManager _userManager;
-    private readonly IServerConfigurationManager _serverConfigurationManager;
+    private readonly ProfileImageService _profileImageService;
     private readonly ILogger<UserCreatedEventListener> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UserCreatedEventListener"/> class.
     /// </summary>
-    /// <param name="userManager">The user manager.</param>
-    /// <param name="serverConfigurationManager">The server configuration manager.</param>
+    /// <param name="profileImageService">The profile image service.</param>
     /// <param name="logger">The logger.</param>
     public UserCreatedEventListener(
-        IUserManager userManager,
-        IServerConfigurationManager serverConfigurationManager,
+        ProfileImageService profileImageService,
         ILogger<UserCreatedEventListener> logger)
     {
-        _userManager = userManager;
-        _serverConfigurationManager = serverConfigurationManager;
+        _profileImageService = profileImageService;
         _logger = logger;
     }
 
@@ -46,13 +40,7 @@ public class UserCreatedEventListener : IEventConsumer<UserCreatedEventArgs>
 
         try
         {
-            using var profileLogger = _logger.BeginScope("UserCreatedEventListener");
-            var service = new ProfileImageService(
-                _serverConfigurationManager,
-                _userManager,
-                Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileImageService>.Instance);
-
-            await service.GenerateAndSaveProfileImageAsync(eventArgs.Argument).ConfigureAwait(false);
+            await _profileImageService.GenerateAndSaveProfileImageAsync(eventArgs.Argument).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
