@@ -135,7 +135,7 @@ PYEOF
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: 'manifest/update-${{ steps.version.outputs.version }}'
-          base: master
+          base: ${{ github.event.repository.default_branch }}
           commit-message: 'manifest: add version ${{ steps.version.outputs.version }}'
           title: '[manifest] Add version ${{ steps.version.outputs.version }}'
           body: |

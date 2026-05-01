@@ -24,6 +24,8 @@ public class ProfileImageService
 {
     private const int ImageSize = 256;
     private const int PixelCellCount = 8;
+    private const float TwoInitialsFontScaleFactor = 0.38f;
+    private const float SingleInitialFontScaleFactor = 0.48f;
 
     // A palette of muted background colors suitable for dark-theme UIs.
     private static readonly Color[] ColorPalette =
@@ -257,7 +259,7 @@ public class ProfileImageService
             return;
         }
 
-        var fontSize = text.Length > 1 ? (imageSize * 0.38f) : (imageSize * 0.48f);
+        var fontSize = text.Length > 1 ? (imageSize * TwoInitialsFontScaleFactor) : (imageSize * SingleInitialFontScaleFactor);
         var font = fontFamily.Value.CreateFont(fontSize, FontStyle.Bold);
 
         var textOptions = new RichTextOptions(font)
@@ -317,9 +319,18 @@ public class ProfileImageService
         return config.NameFormat switch
         {
             NameFormat.FirstInitial => username.Length > 0 ? char.ToUpperInvariant(username[0]).ToString() : "?",
-            NameFormat.FullFirstName => username.Trim().Split(' ')[0],
+            NameFormat.FullFirstName => GetFirstWord(username),
             _ => username
         };
+    }
+
+    /// <summary>
+    /// Returns the first non-empty word of a string, or "?" if there is none.
+    /// </summary>
+    private static string GetFirstWord(string value)
+    {
+        var parts = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 0 ? parts[0] : "?";
     }
 
     /// <summary>
