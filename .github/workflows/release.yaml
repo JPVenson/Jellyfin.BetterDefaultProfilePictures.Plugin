@@ -100,8 +100,44 @@ jobs:
       - name: Checkout default branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.repository.default_branch || 'main' }}
           fetch-depth: 0
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="v${{ github.event.inputs.version }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch release artifact info
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+
+          RELEASE_JSON=$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}")
+
+          ZIP_URL=$(echo "$RELEASE_JSON" | jq -r '[.assets[] | select(.name | endswith(".zip"))] | first | .browser_download_url')
+          ZIP_NAME=$(echo "$RELEASE_JSON" | jq -r '[.assets[] | select(.name | endswith(".zip"))] | first | .name')
+
+          if [ -z "$ZIP_URL" ] || [ "$ZIP_URL" = "null" ]; then
+            echo "::error::No .zip asset found on release ${TAG}"
+            exit 1
+          fi
+
+          wget -q -O /tmp/plugin.zip "$ZIP_URL"
+          CHECKSUM=$(md5sum /tmp/plugin.zip | awk '{print $1}')
+
+          echo "zip_name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "zip_url=${ZIP_URL}" >> "$GITHUB_OUTPUT"
+          echo "checksum=${CHECKSUM}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Update manifest.json
         run: |
@@ -112,8 +148,8 @@ from datetime import datetime, timezone
 version    = os.environ["VERSION"]
 checksum   = os.environ["CHECKSUM"]
 zip_name   = os.environ["ZIP_NAME"]
+zip_url    = os.environ["ZIP_URL"]
 timestamp  = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-dl_url     = os.environ["DOWNLOAD_URL"]
 repository = os.environ["GITHUB_REPOSITORY"]
 
 manifest_path = "manifest.json"
@@ -123,8 +159,8 @@ with open(manifest_path) as f:
 new_version = {
     "version": version,
     "changelog": f"See https://github.com/{repository}/releases/tag/v{version}",
-    "targetAbi": "10.9.0.0",
-    "sourceUrl": dl_url,
+    "targetAbi": "10.11.0.0",
+    "sourceUrl": zip_url,
     "checksum": checksum,
     "timestamp": timestamp,
     "filename": zip_name
@@ -142,24 +178,24 @@ with open(manifest_path, "w") as f:
 print(f"manifest.json updated with version {version}")
 PYEOF
         env:
-          VERSION: ${{ needs.build-and-release.outputs.version }}
-          CHECKSUM: ${{ needs.build-and-release.outputs.checksum }}
-          ZIP_NAME: ${{ needs.build-and-release.outputs.zip_name }}
-          DOWNLOAD_URL: https://github.com/${{ github.repository }}/releases/download/${{ needs.build-and-release.outputs.tag }}/${{ needs.build-and-release.outputs.zip_name }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
+          VERSION: ${{ steps.release.outputs.version }}
+          CHECKSUM: ${{ steps.release.outputs.checksum }}
+          ZIP_NAME: ${{ steps.release.outputs.zip_name }}
+          ZIP_URL: ${{ steps.release.outputs.zip_url }}
 
       - name: Create Pull Request to update manifest
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: 'manifest/update-${{ needs.build-and-release.outputs.version }}'
-          base: ${{ github.event.repository.default_branch }}
-          commit-message: 'manifest: add version ${{ needs.build-and-release.outputs.version }}'
-          title: '[manifest] Add version ${{ needs.build-and-release.outputs.version }}'
+          add-paths: manifest.json
+          branch: 'manifest/update-${{ steps.release.outputs.version }}'
+          base: ${{ github.event.repository.default_branch || 'main' }}
+          commit-message: 'manifest: add version ${{ steps.release.outputs.version }}'
+          title: '[manifest] Add version ${{ steps.release.outputs.version }}'
           body: |
-            Automated manifest update for release **v${{ needs.build-and-release.outputs.version }}**.
+            Automated manifest update for release **v${{ steps.release.outputs.version }}**.
 
-            - Checksum (MD5): `${{ needs.build-and-release.outputs.checksum }}`
-            - Download: ${{ needs.build-and-release.outputs.zip_name }}
+            - Checksum (MD5): `${{ steps.release.outputs.checksum }}`
+            - Download: [${{ steps.release.outputs.zip_name }}](${{ steps.release.outputs.zip_url }})
           labels: manifest
           delete-branch: true
