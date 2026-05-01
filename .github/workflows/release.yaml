@@ -19,6 +19,11 @@ jobs:
   build-and-release:
     name: Build, Package, and Release
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      zip_name: ${{ steps.package.outputs.zip_name }}
+      checksum: ${{ steps.package.outputs.checksum }}
 
     steps:
       - name: Checkout repository
@@ -85,6 +90,19 @@ jobs:
           artifactContentType: application/zip
           allowUpdates: true
 
+  update-manifest:
+    name: Update manifest.json
+    needs: build-and-release
+    runs-on: ubuntu-latest
+
+    steps:
+      # Always check out the default branch so the manifest PR is never based on a stale tag snapshot
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
       - name: Update manifest.json
         run: |
           python3 - <<'PYEOF'
@@ -124,24 +142,24 @@ with open(manifest_path, "w") as f:
 print(f"manifest.json updated with version {version}")
 PYEOF
         env:
-          VERSION: ${{ steps.version.outputs.version }}
-          CHECKSUM: ${{ steps.package.outputs.checksum }}
-          ZIP_NAME: ${{ steps.package.outputs.zip_name }}
-          DOWNLOAD_URL: https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/${{ steps.package.outputs.zip_name }}
+          VERSION: ${{ needs.build-and-release.outputs.version }}
+          CHECKSUM: ${{ needs.build-and-release.outputs.checksum }}
+          ZIP_NAME: ${{ needs.build-and-release.outputs.zip_name }}
+          DOWNLOAD_URL: https://github.com/${{ github.repository }}/releases/download/${{ needs.build-and-release.outputs.tag }}/${{ needs.build-and-release.outputs.zip_name }}
           GITHUB_REPOSITORY: ${{ github.repository }}
 
       - name: Create Pull Request to update manifest
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: 'manifest/update-${{ steps.version.outputs.version }}'
+          branch: 'manifest/update-${{ needs.build-and-release.outputs.version }}'
           base: ${{ github.event.repository.default_branch }}
-          commit-message: 'manifest: add version ${{ steps.version.outputs.version }}'
-          title: '[manifest] Add version ${{ steps.version.outputs.version }}'
+          commit-message: 'manifest: add version ${{ needs.build-and-release.outputs.version }}'
+          title: '[manifest] Add version ${{ needs.build-and-release.outputs.version }}'
           body: |
-            Automated manifest update for release **v${{ steps.version.outputs.version }}**.
+            Automated manifest update for release **v${{ needs.build-and-release.outputs.version }}**.
 
-            - Checksum (MD5): `${{ steps.package.outputs.checksum }}`
-            - Download: ${{ steps.package.outputs.zip_name }}
+            - Checksum (MD5): `${{ needs.build-and-release.outputs.checksum }}`
+            - Download: ${{ needs.build-and-release.outputs.zip_name }}
           labels: manifest
           delete-branch: true
