@@ -60,3 +60,8 @@ To produce the release artifact:
 ```
 dotnet publish Jellyfin.Plugin.Template/Jellyfin.Plugin.Template.csproj --configuration Release --output artifacts
 ```
+
+
+## AI disclaimer
+
+Ai has been utilised to translate the original Pullrequest made to the jellyfin server repository into a plugin form.
